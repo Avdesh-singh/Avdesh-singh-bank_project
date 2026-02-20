@@ -1,0 +1,173 @@
+from django.shortcuts import render,redirect
+from .forms import RegisterationForm
+from .models import Account
+from .encrypt import hash_value
+import time
+
+# Create your views here.
+def index(request):
+    return render(request,'index.html')
+
+def register(request):
+    form = RegisterationForm()
+    if request.method == "POST":
+        form = RegisterationForm(request.POST,request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect('home')
+    return render(request,'register.html',{'form':form})
+
+def pin_generation(request):
+    msg = ""
+    data = None
+    if request.method == "POST":
+        acc = int(request.POST.get('acc'))
+        mobile = int(request.POST.get('phn'))
+        pin = int(request.POST.get('pin'))
+        c_pin = int(request.POST.get('c_pin'))
+        try:
+            data = Account.objects.get(acc_num = acc)
+        except:
+            msg = "Account not found"
+        if data:
+            if data.phone == mobile:
+                if pin == c_pin:
+                    data.pin = hash_value(c_pin)
+                    data.save()
+                    return redirect('home')
+                else:
+                    msg = "pin and confirm pin did'nt match"
+            else:
+                msg = "enter the registered mobile number"
+    context = {
+        'msg' : msg
+    }
+
+    return render(request,'pin.html',context)
+
+def balance(request):
+    msg = ""
+    data = None
+    if request.method == "POST":
+        acc = int((request.POST.get('acc')))
+        pin = int(request.POST.get('pin'))
+        print(acc,pin)
+        try:
+            data = Account.objects.get(acc_num = acc)
+        except:
+            msg = "Account not found"   
+        if data :
+            if data.pin == hash_value(pin):
+                msg = f"Your account balance is {data.balance}"
+            else:
+                msg = "Invalid pin"
+    context = {
+        'msg' : msg, 
+      
+    }
+
+    return render(request,'balance.html',context)
+
+def deposit(request):
+    msg = ""
+    data = None
+    if request.method == "POST":
+        acc = int(request.POST.get('acc'))
+        pin = int(request.POST.get('pin'))
+        amt = int(request.POST.get('amt'))
+        try:
+            data = Account.objects.get(acc_num = acc)
+        except:
+            msg = "Account not found"
+        if data:
+            if data.pin == hash_value(pin):
+                if amt>=100:
+                    if amt<=10000:
+                        data.balance+=amt
+                        data.save()
+                        time.sleep(5)
+                        return redirect('home')
+                    else:
+                        msg = "Amount is high please visit branch"
+                else:
+                    msg = "Minimum deposit amount is 100"
+            else:
+                msg = "Invalid pin"
+    context = {
+        'msg' : msg, 
+      
+    }
+    return render(request,'transaction.html',context)
+
+def withdraw(request):
+    msg = ""
+    data = None
+    if request.method == "POST":
+        acc = int(request.POST.get('acc'))
+        pin = int(request.POST.get('pin'))
+        amt = int(request.POST.get('amt'))
+        try:
+            data = Account.objects.get(acc_num=acc)
+        except:
+            msg = "Account not found"
+        if data:
+            if data.pin == hash_value(pin):
+                if amt>=100:
+                    if amt<=data.balance:
+                        data.balance-=amt
+                        data.save()
+                        time.sleep(5)
+                        return redirect('home')
+                    else:
+                        msg = "Insufficient balance"
+                else:
+                    msg = "Minimum withdraw amount is 100"
+            else:
+                msg = "Invalid pin"
+    context = {
+        'msg' : msg,
+        'flag' : True
+        }
+    return render(request,'transaction.html',context)
+
+def acc_transfer(request):
+    f_data = None
+    t_data = None   
+    msg = ""
+    if request.method == "POST":
+        f_acc = int(request.POST.get('f_acc'))
+        t_acc = int(request.POST.get('t_acc'))
+        pin = int(request.POST.get('pin'))
+        amt = int(request.POST.get('amt'))
+        try:
+            f_data = Account.objects.get(acc_num = f_acc)
+            t_data = Account.objects.get(acc_num = t_acc)
+        except:
+            msg = "Sender account number is invalid"
+        if  f_data :
+            if f_data.pin == hash_value(pin):
+                if amt<=f_data.balance:
+                    if amt>=1:
+                        f_data.balance-=amt
+                        f_data.save()
+                        time.sleep(3)
+                        #----------------------
+                        try:
+                            t_data = Account.objects.get(acc_num = t_acc)
+                        except:
+                            msg = "Receiver Account is in valid"
+                            
+                    if t_data:
+                        t_data.balance+=amt
+                        t_data.save()
+                        time.sleep(3)
+                        return redirect('home')
+                else:
+                    msg = "enter the valid amount"
+            else:
+                msg = "Incorrect pin"
+    context = {
+        'msg':msg
+    }
+    return render(request,'acc_transfer.html',context)
+       

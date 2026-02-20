@@ -1,0 +1,24 @@
+from django.db import models
+
+# Create your models here.
+class State(models.Model):
+    name = models.CharField(max_length=32)
+    def __str__(self):
+        return self.name
+class Gender(models.Model):
+    name = models.CharField(max_length=10,default=' ')
+    def __str__(self):
+        return self.name
+class Account(models.Model):
+    acc_num = models.BigAutoField(primary_key=True)
+    name = models.CharField(max_length=50)
+    dob = models.DateField()
+    address = models.TextField()
+    email = models.EmailField()
+    state = models.ForeignKey(State, on_delete=models.CASCADE)
+    gender = models.ForeignKey(Gender, on_delete=models.CASCADE)
+    phone = models.PositiveIntegerField()
+    pin = models.CharField(max_length=100)
+    aadhar = models.PositiveIntegerField(unique=True,null=False)
+    photo = models.ImageField(upload_to='profile')
+    balance = models.FloatField(default=0.0)
